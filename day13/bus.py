@@ -1,3 +1,6 @@
+import math
+from functools import reduce
+from tqdm import tqdm
 
 def get_input():
     with open('day13/input') as f:
@@ -11,6 +14,11 @@ def get_input_2():
         buses = [int(num) if num != 'x' else num for num in f.readline().split(',')]
     return buses
 
+def lcm(nums):
+    num = reduce(lambda x, y: x * y, nums)
+    gcd = reduce(lambda x, y: math.gcd(x,y), nums)
+    return num / gcd
+
 def part_1(start, buses):
     time = start
     while True:
@@ -21,24 +29,24 @@ def part_1(start, buses):
 
 def part_2(buses):
     time = buses[0]
+    
     while True:
         found = True
+        correct_buses = []
         for i, bus in enumerate(buses):
             if bus == 'x':
                 continue
             if (time + i) % bus != 0:
                 found = False
                 break
-            
+            else:
+                correct_buses.append(bus)
         if not found:
-            time += buses[0]
+            if correct_buses:
+                time += lcm(correct_buses)
+            else:
+                time += 1
             continue
-        else:
-            print('answer:', time)
-            for i, bus in enumerate(buses):
-                if bus == 'x':
-                    continue
-                print(f'{bus}:{(time + i) % bus}')
         
         return time
 
