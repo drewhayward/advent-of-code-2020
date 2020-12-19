@@ -3,8 +3,8 @@ from functools import reduce
 from itertools import product
 from tqdm import tqdm
 
-DIMS = 3
-CUBE_SIZE = 20
+DIMS = 4
+CUBE_SIZE = 25
 
 def get_input():
     start_slice = []
@@ -37,8 +37,10 @@ def tensor_dim(tensor):
 
 def num_neighbors(tensor, coord):
     total = 0
+    position = [0] * DIMS
     for offset in product(range(-1, 2, 1), repeat=len(coord)):
-        position = tuple(c + o for o, c in zip(offset, coord))
+        for i in range(DIMS):
+            position[i] = offset[i] + coord[i]
         in_bounds = all(0 <= i < CUBE_SIZE for i in position)
         is_self = all(i == 0 for i in offset)
         if in_bounds and not is_self and index_tensor(tensor, position):
@@ -86,14 +88,14 @@ def make_hypercube(size, dim):
         return [make_hypercube(size, dim - 1) for _ in range(size)]
 
 def sum_tensor(tensor):
-    if isinstance(tensor_dim, list):
-        return sum(sum_tensor(child) for child in tensor)
+    if isinstance(tensor, list):
+        return sum([sum_tensor(child) for child in tensor])
     else:
         if tensor:
             return 1
         return 0
 
-def part_1(steps):
+def part_2(steps):
     cube = make_hypercube(CUBE_SIZE, DIMS)
 
     start_slice = get_input()
@@ -110,11 +112,10 @@ def part_1(steps):
             point[1] += y
             assign_tensor(cube, point, cell)
 
-
     for _ in tqdm(range(steps)):
         cube = step_cube(cube)
 
     return sum_tensor(cube)
 
 if __name__ == "__main__":
-    print(part_1(6))
+    print(part_2(6))
