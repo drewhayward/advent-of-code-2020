@@ -6,6 +6,7 @@ def get_tiles():
         tile_rows = [tile for tile in data.split('\n\n')]
         tiles = [Tile(rows.split('\n')[0][-5:-1], rows.split('\n')[1:]) for rows in tile_rows]
         return tiles
+
 def check_match(side_1, side_2):
     match = True
     for c1, c2 in zip(side_1, side_2):
@@ -23,17 +24,61 @@ def check_match(side_1, side_2):
 
     return match
 
+monster_str = """                  # 
+#    ##    ##    ###
+ #  #  #  #  #  #   """
+monster_coords = []
+MONSTER_HEIGHT = len(monster_str.split('\n'))
+for i, line in enumerate(monster_str.split('\n')):
+    MONSTER_WIDTH = len(line)
+    for j, c in enumerate(line):
+        if c == "#":
+            monster_coords.append((i,j))
+
+def check_for_monster(img, i, j):
+    if i + MONSTER_HEIGHT >= len(img) or j + MONSTER_WIDTH >= len(img[0]):
+        return False
+    
+    for x, y in monster_coords:
+        if img[i + x][j + y] != '#':
+            return False
+
+    return True
+
+def num_monsters(img):
+    count = 0
+    for i in range(len(img)):
+        for j in range(len(img[i])):
+            if check_for_monster(img, i, j):
+                count += 1
+    return count
+
+def rotate(array):
+    n = len(array)
+    m = len(array[0])
+    new_arr = [row[:] for row in array]
+
+    for j in range(n):
+        for i in range(m - 1, -1, -1):
+            new_arr[j][m - i - 1] = array[i][j]
+
+    return new_arr
+
 class Tile:
     def __init__(self, id, rows):
         self.id = int(id)
         rows = [list(row) for row in rows if row]
         self.sides = [
             rows[0],
-            reversed(rows[-1]),
+            list(reversed(rows[-1])),
             [row[-1] for row in rows],
-            reversed([row[0] for row in rows])
+            list(reversed([row[0] for row in rows]))
         ]
+
         self.data = rows
+        self.data = self.data[1:-1]
+        for i in range(len(self.data)):
+            self.data[i] = self.data[i][1:-1]
         
         self.num_neighbors = 0
         self.neighbors = [None] * 4
@@ -72,7 +117,7 @@ class Tile:
         """
         self.data = list(list(item) for item in zip(*self.data))
         self.neighbors = list(reversed(self.neighbors))
-        self.sides = list(reversed(self.sides))
+        self.sides = list(list(reversed(side)) for side in reversed(self.sides))
         # flipped_neighbors = self.neighbors[:]
         # flipped_neighbors[0] = self.neighbors[3]
         # flipped_neighbors[1] = self.neighbors[2]
@@ -145,7 +190,7 @@ def part_2(tiles):
             break
 
     # Make this tile the top left tile
-    while corner_tile.neighbors[0] is not None or corner_tile[3] is not None:
+    while corner_tile.neighbors[0] is not None or corner_tile.neighbors[3] is not None:
         corner_tile.rotate()
 
     # Stitch image together
@@ -155,7 +200,7 @@ def part_2(tiles):
     # For each row
     while True:
         # assuming the leftmost tile is lined up here
-        rows = [row[:] for row in leftmost.data]
+        rows = [[] for row in leftmost.data]
         current_tile = leftmost
         while True:
             # assuming the current tile is lined up here
@@ -165,37 +210,57 @@ def part_2(tiles):
                 rows[i] += current_tile.data[i]
 
             # Rotate/flip the next tile to fit
-            next_tile = tile_map[current_tile.neighbors[2]]
-            if next_tile is None:
+            if current_tile.neighbors[2] is None:
                 break
+            else:
+                next_tile = tile_map[current_tile.neighbors[2]]
 
             rotate_to_fit(current_tile.sides[2], next_tile, 3)
-            current_tile = new_tile
+            current_tile = next_tile
 
         # add rows to img
         img += rows
 
         # rotate/flip new leftmost tile to fit
+        if leftmost.neighbors[1] is None:
+            break
 
+        next_tile = tile_map[leftmost.neighbors[1]]
+        rotate_to_fit(leftmost.sides[1], next_tile, 0)
+        leftmost = next_tile
 
 
     # Trim border
+    # img = img[1:-1]
+    # for i in range(len(img)):
+    #     img[i] = img[i][1:-1]
 
+    count = num_monsters(img)
     # Look for sea monsters in each orientation
+    for _ in range(4):
+        if count > 0:
+            break
+        img = rotate(img)
+
+        count = num_monsters(img)
+
+    if count == 0:
+        img = list(list(item) for item in zip(*img))
+        count = num_monsters(img)
+        for _ in range(4):
+            if count > 0:
+                break
+            img = rotate(img)
+
+            count = num_monsters(img)
 
     # return count of hashes minus the number of monsters * monster hash count
-
+    total_hashes = len([cell for row in img for cell in row if cell == '#'])
+    return total_hashes - len(monster_coords) * count
 
 
 if __name__ == "__main__":
     prod, tiles = part_1()
-    t = tiles[0]
-    print(t)
-    t.rotate()
-    print('--')
-    print(t)
-    t.flip()
-    print('--')
-    print(t)
     print(prod)
+    print(part_2(tiles))
 
